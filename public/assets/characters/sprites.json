@@ -1,0 +1,16 @@
+{
+  "frameWidth": 128,
+  "frameHeight": 160,
+  "columns": 5,
+  "rows": 3,
+  "frames": {
+    "idle": [0, 1, 2],
+    "walk": [3, 4, 5, 6, 7, 8],
+    "jumpUp": 9,
+    "jumpDown": 10,
+    "binoculars": 11,
+    "photo": 12,
+    "interact": 13,
+    "victory": 14
+  }
+}

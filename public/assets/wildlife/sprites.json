@@ -1,0 +1,12 @@
+{
+  "frameWidth": 128,
+  "frameHeight": 128,
+  "columns": 4,
+  "rows": 2,
+  "frames": {
+    "idle": [0, 1],
+    "moving": [2, 3, 4, 5],
+    "alert": 6,
+    "calm": 7
+  }
+}
