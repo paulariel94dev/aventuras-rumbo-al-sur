@@ -1,10 +1,10 @@
 # Aventuras en Equipo: Rumbo al Sur
 
-MVP original en TypeScript, Phaser 3 y Vite. Instalación: `npm install`, luego `npm run dev`. Build: `npm run build`.
+MVP original en TypeScript, Phaser 3 y Vite. Demo pública: https://paulariel94dev.github.io/aventuras-rumbo-al-sur/. Cada push a `main` publica automáticamente `dist` en GitHub Pages. Instalación: `npm install`, luego `npm run dev`. Build: `npm run build`.
 
 ## Cómo jugar
 
-A/D o flechas: caminar. Espacio: saltar. B: alternar binoculares. Mouse o flechas: apuntar mientras observás. Mantené un animal dentro del círculo 1,5 segundos para registrarlo. F: fotografía (binoculares activos). E: conversar o terminar en la bandera. Tab: álbum; Tab/Escape: cerrar. En pantallas táctiles hay controles visibles.
+A/D o flechas: caminar. Espacio: saltar. Q: alternar binoculares. Mouse o flechas: apuntar mientras observás. Mantené un animal dentro del círculo 1,5 segundos para registrarlo. F: fotografía (binoculares activos). E: conversar o terminar en la bandera. Tab: álbum; Tab/Escape: cerrar. En pantallas táctiles hay controles visibles.
 
 Recorré los cinco ambientes, observá las cinco especies y presioná E en el fin del sendero. Tras 5/5 se habilita el zorro bonus antes de la bandera; es un segundo encuentro, no una sexta especie. Podés terminar con 5/5 o 6/5. Diez segundos quietos activan GOOD VIBES ONLY. No hay combate ni pérdida de vidas. Los corazones representan la pareja, no daño. Las caídas devuelven al último suelo seguro.
 
