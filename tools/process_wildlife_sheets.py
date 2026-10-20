@@ -58,7 +58,8 @@ def remove_preview_background(image: Image.Image) -> Image.Image:
 
 
 def normalize(name: str) -> None:
-    source = remove_preview_background(Image.open(SOURCE / f"{name}-source.png"))
+    source_name = "condor-source-v2.png" if name == "condor" else f"{name}-source.png"
+    source = remove_preview_background(Image.open(SOURCE / source_name))
     sheet = Image.new("RGBA", (FRAME * GRID[0], FRAME * GRID[1]))
     max_width, max_height = LIMITS[name]
     for row in range(GRID[1]):

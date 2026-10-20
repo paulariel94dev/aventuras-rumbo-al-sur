@@ -1,15 +1,78 @@
 import Phaser from 'phaser';
 import {species,Species} from '../data/wildlife';
+
 export type AnimalState='idle'|'moving'|'alert';
-export type Animal={data:Species;sprite:Phaser.GameObjects.Sprite;state:AnimalState;elapsed:number};
+export type Animal={data:Species;sprite:Phaser.GameObjects.Sprite;state:AnimalState;elapsed:number;clue:Phaser.GameObjects.Container};
+
 export class WildlifeSystem{
- animals:Animal[];found=new Set<string>();photos=new Map<string,number>();focus=0;target?:Animal;
- constructor(scene:Phaser.Scene){this.animals=species.map(data=>({data,sprite:scene.add.sprite(data.x,data.y,data.texture,0).setScale(data.kind==='bird'?1.08:.92).play(`${data.texture}-idle`),state:'idle',elapsed:0}));}
- get count(){return species.filter(s=>!s.bonus&&this.found.has(s.id)).length;}
- update(dt:number,px:number,aim:{x:number;y:number}|null,onFound:(a:Animal)=>void){
- for(const a of this.animals){a.elapsed+=dt;const close=Math.abs(px-a.sprite.x)<100;a.state=close?'alert':Math.floor(a.elapsed/2500)%2?'moving':'idle';const amp=a.data.kind==='bird'?100:a.state==='moving'?35:5;a.sprite.x=a.data.x+Math.sin(a.elapsed/1700)*amp;a.sprite.y=a.data.y+(a.data.kind==='bird'?Math.sin(a.elapsed/1100)*35:0);a.sprite.setFlipX(Math.cos(a.elapsed/1700)<0);a.sprite.setAlpha(a.data.bonus&&this.count<5?.35:1);if(this.found.has(a.data.id)){a.sprite.anims.stop();a.sprite.setFrame(7);}else if(a.state==='alert'){a.sprite.anims.stop();a.sprite.setFrame(6);}else a.sprite.play(`${a.data.texture}-${a.state}`,true);}
- const candidate=aim?this.animals.find(a=>(!a.data.bonus||this.count===5)&&Math.abs(a.sprite.x-px)<580&&Phaser.Math.Distance.Between(aim.x,aim.y,a.sprite.x,a.sprite.y)<65):undefined;
- if(candidate!==this.target){this.focus=0;this.target=candidate;}if(!candidate||this.found.has(candidate.data.id)){this.focus=0;return;}this.focus+=dt;if(this.focus>=1500){this.found.add(candidate.data.id);this.focus=0;onFound(candidate);}
+ animals:Animal[];
+ found=new Set<string>();
+ clues=new Set<string>();
+ photos=new Map<string,number>();
+ photoTextures=new Map<string,string>();
+ photoFrames=new Map<string,number>();
+ focus=0;
+ target?:Animal;
+ nearbyClue?:Animal;
+ readonly focusGoal=1500;
+
+ constructor(scene:Phaser.Scene){
+  this.animals=species.map(data=>{
+   const x=data.x-285;
+   const marker=scene.add.circle(x,562,18,0x243e37).setStrokeStyle(3,0xffd57b);
+   const icon=scene.add.text(x,561,'?',{fontFamily:'monospace',fontSize:'22px',color:'#ffe9a6'}).setOrigin(.5);
+   const caption=scene.add.text(x-54,520,data.bonus?'ÚLTIMA PISTA · E':'RASTRO · E',{fontFamily:'monospace',fontSize:'15px',color:'#ffe1a4'});
+   const clue=scene.add.container(0,0,[marker,icon,caption]).setDepth(3);
+   const sprite=scene.add.sprite(data.x,data.y,data.texture,0).setScale(data.id==='condor'?1.36:.92).play(`${data.texture}-idle`);
+   return {data,sprite,state:'idle' as AnimalState,elapsed:0,clue};
+  });
  }
- photo(px:number,aim:{x:number;y:number}){const a=this.target;if(!a)return null;const distance=Math.abs(px-a.sprite.x);const centered=Math.max(0,1-Phaser.Math.Distance.Between(aim.x,aim.y,a.sprite.x,a.sprite.y)/65);const score=Math.round(350*centered+350*Math.max(0,1-Math.abs(distance-240)/400)+(a.state==='moving'?300:a.state==='idle'?180:60));this.photos.set(a.data.id,Math.max(score,this.photos.get(a.data.id)||0));return {a,score};}
+
+ get count(){return species.filter(s=>!s.bonus&&this.found.has(s.id)).length;}
+
+ inspectClue(px:number){
+  const clue=this.animals.find(a=>(!a.data.bonus||this.count===5)&&!this.clues.has(a.data.id)&&Math.abs(px-(a.data.x-285))<105);
+  if(!clue)return null;
+  this.clues.add(clue.data.id);
+  return clue;
+ }
+
+ update(dt:number,px:number,aim:{x:number;y:number}|null,onFound:(a:Animal)=>void){
+  this.nearbyClue=this.animals.find(a=>(!a.data.bonus||this.count===5)&&!this.clues.has(a.data.id)&&Math.abs(px-(a.data.x-285))<105);
+  for(const a of this.animals){
+   a.elapsed+=dt;
+   const unlocked=this.clues.has(a.data.id);
+   a.clue.setVisible(!unlocked&&(!a.data.bonus||this.count===5));
+   a.state=Math.abs(px-a.sprite.x)<100?'alert':Math.floor(a.elapsed/2200)%2?'moving':'idle';
+   const amp=a.data.kind==='bird'?100:a.state==='moving'?35:5;
+   a.sprite.x=a.data.x+Math.sin(a.elapsed/1700)*amp;
+   a.sprite.y=a.data.y+(a.data.kind==='bird'?Math.sin(a.elapsed/1100)*35:0);
+   a.sprite.setFlipX(Math.cos(a.elapsed/1700)<0);
+   a.sprite.setAlpha(unlocked?1:.22);
+   if(this.found.has(a.data.id)&&a.data.id!=='condor'){a.sprite.anims.stop();a.sprite.setFrame(7);}
+   else if(this.found.has(a.data.id)){a.sprite.play('condor-moving',true);}
+   else if(a.state==='alert'){a.sprite.anims.stop();a.sprite.setFrame(6);}
+   else a.sprite.play(`${a.data.texture}-${a.state}`,true);
+  }
+  const candidate=aim?this.animals.find(a=>this.clues.has(a.data.id)&&!this.found.has(a.data.id)&&Math.abs(a.sprite.x-px)<650&&Phaser.Math.Distance.Between(aim.x,aim.y,a.sprite.x,a.sprite.y)<78):undefined;
+  this.target=candidate;
+  if(candidate){this.focus=Math.min(this.focusGoal,this.focus+dt);}
+  else this.focus=Math.max(0,this.focus-dt*.55);
+  if(candidate&&this.focus>=this.focusGoal){
+   this.found.add(candidate.data.id);this.focus=0;onFound(candidate);
+  }
+ }
+
+ photo(px:number,aim:{x:number;y:number}){
+  const a=this.animals.find(item=>this.clues.has(item.data.id)&&Phaser.Math.Distance.Between(aim.x,aim.y,item.sprite.x,item.sprite.y)<65&&Math.abs(px-item.sprite.x)<650);
+  if(!a)return null;
+  const distance=Math.abs(px-a.sprite.x);
+  const centered=Math.max(0,1-Phaser.Math.Distance.Between(aim.x,aim.y,a.sprite.x,a.sprite.y)/90);
+  const score=Math.round(350*centered+350*Math.max(0,1-Math.abs(distance-240)/400)+(a.state==='moving'?300:a.state==='idle'?180:60));
+  const improved=score>(this.photos.get(a.data.id)||0);
+  if(improved){this.photos.set(a.data.id,score);this.photoFrames.set(a.data.id,Number(a.sprite.frame.name));}
+  const newSighting=!this.found.has(a.data.id);
+  if(newSighting)this.found.add(a.data.id);
+  return {a,score,improved,newSighting};
+ }
 }

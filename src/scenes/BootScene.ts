@@ -22,8 +22,8 @@ export class BootScene extends Phaser.Scene{
  g.clear();rect(0,0,16,16,0xffffff);g.generateTexture('block',16,16);g.destroy();this.scene.start('MenuScene');
  for(const character of ['pablo','lujan']){
  this.anims.create({key:`${character}-idle`,frames:this.anims.generateFrameNumbers(character,{start:0,end:2}),frameRate:2,repeat:-1});
- const walkFrames=[3,4,5,6,7,8,7,6,5,4].map(frame=>({key:character,frame}));
- this.anims.create({key:`${character}-walk`,frames:walkFrames,frameRate:8,repeat:-1});
+ const walkFrames=[3,4,5,6,7,8].map(frame=>({key:character,frame}));
+ this.anims.create({key:`${character}-walk`,frames:walkFrames,frameRate:10,repeat:-1});
  }
  for(const animal of ['fox','guanaco','condor','woodpecker','huemul']){
  this.anims.create({key:`${animal}-idle`,frames:this.anims.generateFrameNumbers(animal,{start:0,end:1}),frameRate:2,repeat:-1});
