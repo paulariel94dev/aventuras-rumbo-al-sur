@@ -11,7 +11,7 @@ export class Traveler extends Phaser.Physics.Arcade.Sprite {
  constructor(scene:Phaser.Scene,x:number,key:string){
   super(scene,x,520,key,0);this.characterKey=key;
   scene.add.existing(this);scene.physics.add.existing(this);
-  this.setScale(.62).setCollideWorldBounds(true);
+  this.setScale(.68).setCollideWorldBounds(true);
   this.body!.setSize(50,125).setOffset(39,29);
   this.shadow=scene.add.ellipse(x,600,38,8,0x14231f,.28).setDepth(-1);
   this.once('destroy',()=>this.shadow.destroy());
@@ -33,7 +33,7 @@ export class Traveler extends Phaser.Physics.Arcade.Sprite {
   this.shadow.setPosition(this.x,body.bottom+2).setVisible(grounded).setScale(grounded?1:.7);
   if(time<this.specialUntil)return;
   if(!grounded){this.anims.stop();this.setFrame(body.velocity.y<20?9:10);this.wasGrounded=false;return;}
-  if(!this.wasGrounded){this.wasGrounded=true;this.scene.tweens.add({targets:this,scaleY:.58,duration:70,yoyo:true,onComplete:()=>this.setScale(.62)});}
+  if(!this.wasGrounded){this.wasGrounded=true;this.scene.tweens.add({targets:this,scaleY:.64,duration:70,yoyo:true,onComplete:()=>this.setScale(.68)});}
   const moving=Math.abs(body.velocity.x)>18;
   const animation=`${this.characterKey}-${moving?'walk':'idle'}`;
   this.play(animation,true);

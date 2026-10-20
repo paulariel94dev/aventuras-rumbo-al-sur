@@ -23,7 +23,7 @@ export class WildlifeSystem{
    const icon=scene.add.text(x,561,'?',{fontFamily:'monospace',fontSize:'22px',color:'#ffe9a6'}).setOrigin(.5);
    const caption=scene.add.text(x-54,520,data.bonus?'ÚLTIMA PISTA · E':'RASTRO · E',{fontFamily:'monospace',fontSize:'15px',color:'#ffe1a4'});
    const clue=scene.add.container(0,0,[marker,icon,caption]).setDepth(3);
-   const sprite=scene.add.sprite(data.x,data.y,data.texture,0).setScale(data.id==='condor'?1.36:.92).play(`${data.texture}-idle`);
+   const sprite=scene.add.sprite(data.x,data.y,data.texture,0).setScale(data.id==='condor'?1.36:.82).play(`${data.texture}-idle`);
    return {data,sprite,state:'idle' as AnimalState,elapsed:0,direction:1,clue};
   });
  }
