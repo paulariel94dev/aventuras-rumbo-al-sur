@@ -1,0 +1,2 @@
+Character sprite refinement (built-in image_gen, 2026-10-20)
+Targets: Pablo and Luján source sheets. Each retains its original identity, outfit, 5x3 pose grid and six walking frames. Prompt for both: Repaint clean crisp 16-bit pixel art, preserve the exact 5x3 grid and the same recognizable adventurer; remove all pale white/gray edge fringe, keep solid dark outlines, real transparent background, no antialias halo, checkerboard, cell borders or scenery; keep idle and walking poses consistent in scale and ground alignment, preserve all other gestures.

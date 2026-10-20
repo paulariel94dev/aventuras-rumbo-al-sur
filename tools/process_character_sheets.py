@@ -22,6 +22,11 @@ def is_background(pixel: tuple[int, int, int]) -> bool:
 
 
 def remove_connected_background(cell: Image.Image) -> Image.Image:
+    rgba = cell.convert("RGBA")
+    if rgba.getchannel("A").getextrema()[0] < 255:
+        # ImageGen's new sheets carry real transparency. Keep it intact rather
+        # than interpreting transparent RGB pixels as an opaque matte.
+        return rgba
     rgb = cell.convert("RGB")
     width, height = rgb.size
     visited = bytearray(width * height)
@@ -59,6 +64,7 @@ def normalize(source_name: str, output_name: str) -> None:
     cell_width = source.width // GRID[0]
     cell_height = source.height // GRID[1]
     sheet = Image.new("RGBA", (FRAME_SIZE[0] * GRID[0], FRAME_SIZE[1] * GRID[1]))
+    frames = []
 
     for row in range(GRID[1]):
         for column in range(GRID[0]):
@@ -69,17 +75,30 @@ def normalize(source_name: str, output_name: str) -> None:
             bounds = cell.getbbox()
             if not bounds:
                 raise RuntimeError(f"Empty frame at {column}, {row}")
-            character = cell.crop(bounds)
+            frames.append((column, row, cell.crop(bounds)))
+
+    # Keep idle poses steady with one another and all six walk poses steady
+    # with one another; expressive actions can use their own framing.
+    idle_scale = min(min(104 / frame.width, 146 / frame.height)
+                     for column, row, frame in frames if row == 0 and column < 3)
+    walk_scale = min(min(104 / frame.width, 146 / frame.height)
+                     for column, row, frame in frames if (row == 0 and column >= 3) or row == 1 and column < 4)
+    for column, row, character in frames:
+        if row == 0 and column < 3:
+            scale = idle_scale
+        elif (row == 0 and column >= 3) or (row == 1 and column < 4):
+            scale = walk_scale
+        else:
             scale = min(104 / character.width, 146 / character.height)
-            size = (max(1, round(character.width * scale)), max(1, round(character.height * scale)))
-            character = character.resize(size, Image.Resampling.NEAREST)
-            x = column * FRAME_SIZE[0] + (FRAME_SIZE[0] - size[0]) // 2
-            y = row * FRAME_SIZE[1] + 154 - size[1]
-            sheet.alpha_composite(character, (x, y))
+        size = (max(1, round(character.width * scale)), max(1, round(character.height * scale)))
+        character = character.resize(size, Image.Resampling.NEAREST)
+        x = column * FRAME_SIZE[0] + (FRAME_SIZE[0] - size[0]) // 2
+        y = row * FRAME_SIZE[1] + 154 - size[1]
+        sheet.alpha_composite(character, (x, y))
 
     sheet.save(OUTPUT / output_name, optimize=True)
 
 
 if __name__ == "__main__":
-    normalize("pablo-sheet-source.png", "pablo-sheet.png")
-    normalize("lujan-sheet-source.png", "lujan-sheet.png")
+    normalize("pablo-sheet-source-v2.png", "pablo-sheet.png")
+    normalize("lujan-sheet-source-v2.png", "lujan-sheet.png")
