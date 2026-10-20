@@ -1,4 +1,4 @@
-const CACHE='rumbo-al-sur-v3';
+const CACHE='rumbo-al-sur-v4';
 self.addEventListener('install',event=>{
  self.skipWaiting();
  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(['./','./index.html','./manifest.webmanifest'])));

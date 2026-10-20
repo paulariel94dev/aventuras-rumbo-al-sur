@@ -57,9 +57,74 @@ def remove_preview_background(image: Image.Image) -> Image.Image:
     return rgba
 
 
+def remove_tiny_specks(image: Image.Image, maximum: int = 180, keep_bottom: int = 45) -> Image.Image:
+    """Drop detached one-pixel noise while retaining separate paws and tail tips."""
+    rgba = image.convert("RGBA")
+    alpha = rgba.getchannel("A")
+    width, height = rgba.size
+    seen = bytearray(width * height)
+    for start in range(width * height):
+        x, y = start % width, start // width
+        if seen[start] or alpha.getpixel((x, y)) == 0:
+            continue
+        stack = [start]
+        seen[start] = 1
+        component = []
+        while stack:
+            index = stack.pop()
+            component.append(index)
+            px, py = index % width, index // width
+            for ny in range(max(0, py - 1), min(height, py + 2)):
+                for nx in range(max(0, px - 1), min(width, px + 2)):
+                    neighbor = ny * width + nx
+                    if not seen[neighbor] and alpha.getpixel((nx, ny)):
+                        seen[neighbor] = 1
+                        stack.append(neighbor)
+        bottommost = max(index // width for index in component)
+        # A few naturally detached paw pixels can sit at the foot baseline.
+        if len(component) <= maximum and bottommost < height - keep_bottom:
+            for index in component:
+                alpha.putpixel((index % width, index // width), 0)
+    rgba.putalpha(alpha)
+    return rgba
+
+
+def clean_fox_edge_fringe(image: Image.Image) -> Image.Image:
+    """Replace isolated bright matte colors on the silhouette with dark outline."""
+    rgba = image.convert("RGBA")
+    rgba.putalpha(rgba.getchannel("A").point(lambda value: 255 if value >= 160 else 0))
+    pixels = rgba.load()
+    width, height = rgba.size
+    original = rgba.copy().load()
+    for y in range(height):
+        for x in range(width):
+            red, green, blue, alpha = original[x, y]
+            if alpha == 0:
+                continue
+            if not any(0 <= nx < width and 0 <= ny < height and original[nx, ny][3] == 0
+                       for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1))):
+                continue
+            bright_neutral = max(red, green, blue) - min(red, green, blue) < 24 and min(red, green, blue) > 155
+            stray_red = red > 120 and green < 28 and blue < 65
+            stray_yellow = red > 100 and green > 100 and blue < 24 and abs(red - green) < 32
+            if not (bright_neutral or stray_red or stray_yellow):
+                continue
+            dark_neighbors = []
+            for ny in range(max(0, y - 2), min(height, y + 3)):
+                for nx in range(max(0, x - 2), min(width, x + 3)):
+                    nr, ng, nb, na = original[nx, ny]
+                    if na and max(nr, ng, nb) < 105:
+                        dark_neighbors.append((nr + ng + nb, nr, ng, nb))
+            if dark_neighbors:
+                _, nr, ng, nb = min(dark_neighbors)
+                pixels[x, y] = (nr, ng, nb, alpha)
+    return rgba
+
+
 def normalize(name: str) -> None:
-    source_name = f"{name}-source-v2.png" if name in {"condor", "fox"} else f"{name}-source.png"
-    source = remove_preview_background(Image.open(SOURCE / source_name))
+    source_version = "v3" if name == "fox" else "v2" if name == "condor" else None
+    source_name = f"{name}-source-{source_version}.png" if source_version else f"{name}-source.png"
+    source = Image.open(SOURCE / source_name)
     sheet = Image.new("RGBA", (FRAME * GRID[0], FRAME * GRID[1]))
     max_width, max_height = LIMITS[name]
     cells = []
@@ -70,6 +135,11 @@ def normalize(name: str) -> None:
             top = round(row * source.height / GRID[1])
             bottom = round((row + 1) * source.height / GRID[1])
             cell = source.crop((left, top, right, bottom))
+            if name == "fox":
+                cell = remove_tiny_specks(cell)
+                cell = clean_fox_edge_fringe(cell)
+            else:
+                cell = remove_preview_background(cell)
             bounds = cell.getbbox()
             if not bounds:
                 raise RuntimeError(f"Empty {name} frame at {column}, {row}")
@@ -89,6 +159,15 @@ def normalize(name: str) -> None:
         else:
             y = row * FRAME + 122 - size[1]
         sheet.alpha_composite(animal, (x, y))
+    if name == "fox":
+        # A final cleanup at runtime resolution catches detached specks that
+        # looked harmless in the large source but became visible after scaling.
+        for row in range(GRID[1]):
+            for column in range(GRID[0]):
+                box = (column * FRAME, row * FRAME, (column + 1) * FRAME, (row + 1) * FRAME)
+                tile = sheet.crop(box)
+                tile = clean_fox_edge_fringe(remove_tiny_specks(tile, maximum=70, keep_bottom=10))
+                sheet.paste(tile, box)
     sheet.save(OUTPUT / f"{name}-sheet.png", optimize=True)
 
 

@@ -1,0 +1,4 @@
+Fox cleanup refinement (built-in image_gen, 2026-10-20)
+Edit target: fox-source-v2.png. Final source: fox-source-v3.png; runtime sheet: ../fox-sheet.png.
+Prompt: Repair the 4x2 Patagonian red fox sprite sheet. Clean the four walk frames: remove stray isolated pixels and colored specks around body, paws and tail; keep a compact dark outline, no gray/white halo, no noisy dithering. Preserve fox anatomy, rust coat, cream chest/tail tip, exact cell grid, matching body size and foot baseline. Bottom row contains two walking variations, alert standing and sitting. Transparent background, no text or scenery.
+Post-processing removes detached components smaller than 70 pixels in the final 128px frame and trims pale/red/yellow fringe at the silhouette edge.
