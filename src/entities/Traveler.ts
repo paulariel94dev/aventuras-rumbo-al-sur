@@ -24,15 +24,21 @@ export class Traveler extends Phaser.Physics.Arcade.Sprite {
   const body=this.body as Phaser.Physics.Arcade.Body;
   const grounded=body.blocked.down||body.touching.down;
   if(grounded)this.lastGrounded=time;
+  this.shadow.setPosition(this.x,body.bottom+2).setVisible(grounded).setScale(grounded?1:.7);
+  // An action pose must not consume a buffered jump or freeze a character in
+  // an airborne frame. Keep the physics running and hold horizontal position.
+  if(time<this.specialUntil){
+   this.jumpQueuedUntil=0;
+   if(grounded)this.setVelocityX(0);
+   return;
+  }
   if(this.jumpQueuedUntil>time&&time-this.lastGrounded<130){
    this.setVelocityY(-575);this.jumpQueuedUntil=0;this.lastGrounded=-1000;
   }
   const step=(grounded?1550:1000)*Math.min(delta,50)/1000;
   this.setVelocityX(body.velocity.x+Phaser.Math.Clamp(targetSpeed-body.velocity.x,-step,step));
   if(Math.abs(this.body!.velocity.x)>12)this.setFlipX(this.body!.velocity.x<0);
-  this.shadow.setPosition(this.x,body.bottom+2).setVisible(grounded).setScale(grounded?1:.7);
-  if(time<this.specialUntil)return;
-  if(!grounded){this.anims.stop();this.setFrame(body.velocity.y<20?9:10);this.wasGrounded=false;return;}
+  if(!grounded){this.anims.stop();this.setFrame(9);this.wasGrounded=false;return;}
   if(!this.wasGrounded){this.wasGrounded=true;this.scene.tweens.add({targets:this,scaleY:.64,duration:70,yoyo:true,onComplete:()=>this.setScale(.68)});}
   const moving=Math.abs(body.velocity.x)>18;
   const animation=`${this.characterKey}-${moving?'walk':'idle'}`;
@@ -41,7 +47,14 @@ export class Traveler extends Phaser.Physics.Arcade.Sprite {
  }
 
  pose(action:'observe'|'photo'|'interact'|'victory',duration=0){
-  if(duration)this.specialUntil=this.scene.time.now+duration;
+  const body=this.body as Phaser.Physics.Arcade.Body;
+  const grounded=body.blocked.down||body.touching.down;
+  if(!grounded)return;
+  if(duration){
+   this.jumpQueuedUntil=0;
+   this.setVelocityX(0);
+   this.specialUntil=this.scene.time.now+duration;
+  }
   if(!duration&&this.scene.time.now<this.specialUntil)return;
   this.anims.stop();this.setFrame({observe:11,photo:12,interact:13,victory:14}[action]);
  }
