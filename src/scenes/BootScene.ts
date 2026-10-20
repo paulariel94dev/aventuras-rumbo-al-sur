@@ -27,7 +27,8 @@ export class BootScene extends Phaser.Scene{
  }
  for(const animal of ['fox','guanaco','condor','woodpecker','huemul']){
  this.anims.create({key:`${animal}-idle`,frames:this.anims.generateFrameNumbers(animal,{start:0,end:1}),frameRate:2,repeat:-1});
- this.anims.create({key:`${animal}-moving`,frames:this.anims.generateFrameNumbers(animal,{start:2,end:5}),frameRate:6,repeat:-1});
+ const movement=animal==='woodpecker'?[6,7,7,6]:[2,3,4,5];
+ this.anims.create({key:`${animal}-moving`,frames:movement.map(frame=>({key:animal,frame})),frameRate:animal==='condor'?6:8,repeat:-1});
  }
  }
 }

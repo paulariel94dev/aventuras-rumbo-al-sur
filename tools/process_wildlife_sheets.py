@@ -58,10 +58,11 @@ def remove_preview_background(image: Image.Image) -> Image.Image:
 
 
 def normalize(name: str) -> None:
-    source_name = "condor-source-v2.png" if name == "condor" else f"{name}-source.png"
+    source_name = f"{name}-source-v2.png" if name in {"condor", "fox"} else f"{name}-source.png"
     source = remove_preview_background(Image.open(SOURCE / source_name))
     sheet = Image.new("RGBA", (FRAME * GRID[0], FRAME * GRID[1]))
     max_width, max_height = LIMITS[name]
+    cells = []
     for row in range(GRID[1]):
         for column in range(GRID[0]):
             left = round(column * source.width / GRID[0])
@@ -73,18 +74,25 @@ def normalize(name: str) -> None:
             if not bounds:
                 raise RuntimeError(f"Empty {name} frame at {column}, {row}")
             animal = cell.crop(bounds)
-            scale = min(max_width / animal.width, max_height / animal.height)
-            size = (max(1, round(animal.width * scale)), max(1, round(animal.height * scale)))
-            animal = animal.resize(size, Image.Resampling.NEAREST)
-            x = column * FRAME + (FRAME - size[0]) // 2
-            if name == "condor":
-                y = row * FRAME + (FRAME - size[1]) // 2
-            else:
-                y = row * FRAME + 122 - size[1]
-            sheet.alpha_composite(animal, (x, y))
+            cells.append((column, row, animal))
+    # Preserve body size through each grounded walk cycle instead of stretching
+    # every pose to fill the frame. Condor wing spans intentionally vary.
+    common_scale = min(min(max_width / animal.width, max_height / animal.height)
+                       for _, _, animal in cells)
+    for column, row, animal in cells:
+        scale = min(max_width / animal.width, max_height / animal.height) if name == "condor" else common_scale
+        size = (max(1, round(animal.width * scale)), max(1, round(animal.height * scale)))
+        animal = animal.resize(size, Image.Resampling.NEAREST)
+        x = column * FRAME + (FRAME - size[0]) // 2
+        if name == "condor":
+            y = row * FRAME + (FRAME - size[1]) // 2
+        else:
+            y = row * FRAME + 122 - size[1]
+        sheet.alpha_composite(animal, (x, y))
     sheet.save(OUTPUT / f"{name}-sheet.png", optimize=True)
 
 
 if __name__ == "__main__":
     for animal_name in LIMITS:
         normalize(animal_name)
+

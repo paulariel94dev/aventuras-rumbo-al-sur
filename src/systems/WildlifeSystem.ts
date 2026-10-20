@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import {species,Species} from '../data/wildlife';
 
 export type AnimalState='idle'|'moving'|'alert';
-export type Animal={data:Species;sprite:Phaser.GameObjects.Sprite;state:AnimalState;elapsed:number;clue:Phaser.GameObjects.Container};
+export type Animal={data:Species;sprite:Phaser.GameObjects.Sprite;state:AnimalState;elapsed:number;direction:number;clue:Phaser.GameObjects.Container};
 
 export class WildlifeSystem{
  animals:Animal[];
@@ -24,7 +24,7 @@ export class WildlifeSystem{
    const caption=scene.add.text(x-54,520,data.bonus?'ÚLTIMA PISTA · E':'RASTRO · E',{fontFamily:'monospace',fontSize:'15px',color:'#ffe1a4'});
    const clue=scene.add.container(0,0,[marker,icon,caption]).setDepth(3);
    const sprite=scene.add.sprite(data.x,data.y,data.texture,0).setScale(data.id==='condor'?1.36:.92).play(`${data.texture}-idle`);
-   return {data,sprite,state:'idle' as AnimalState,elapsed:0,clue};
+   return {data,sprite,state:'idle' as AnimalState,elapsed:0,direction:1,clue};
   });
  }
 
@@ -43,15 +43,25 @@ export class WildlifeSystem{
    a.elapsed+=dt;
    const unlocked=this.clues.has(a.data.id);
    a.clue.setVisible(!unlocked&&(!a.data.bonus||this.count===5));
-   a.state=Math.abs(px-a.sprite.x)<100?'alert':Math.floor(a.elapsed/2200)%2?'moving':'idle';
-   const amp=a.data.kind==='bird'?100:a.state==='moving'?35:5;
-   a.sprite.x=a.data.x+Math.sin(a.elapsed/1700)*amp;
-   a.sprite.y=a.data.y+(a.data.kind==='bird'?Math.sin(a.elapsed/1100)*35:0);
-   a.sprite.setFlipX(Math.cos(a.elapsed/1700)<0);
+   const flying=a.data.kind==='bird';
+   const perched=a.data.kind==='woodpecker';
+   a.state=flying?'moving':Math.abs(px-a.sprite.x)<100?'alert':Math.floor(a.elapsed/2200)%2?'moving':'idle';
+   if(flying){
+    a.sprite.x=a.data.x+Math.sin(a.elapsed/1700)*100;
+    a.sprite.y=a.data.y+Math.sin(a.elapsed/1100)*35;
+    a.sprite.setFlipX(Math.cos(a.elapsed/1700)<0);
+   }else if(a.state==='moving'&&!perched){
+    // Only walk frames translate. Idle, alert and resting poses keep their footing.
+    const speed=a.data.kind==='fox'?26:20;
+    a.sprite.x+=a.direction*speed*Math.min(dt,50)/1000;
+    if(Math.abs(a.sprite.x-a.data.x)>=52){
+     a.sprite.x=a.data.x+a.direction*52;
+     a.direction*=-1;
+    }
+    a.sprite.setFlipX(a.direction<0);
+   }
    a.sprite.setAlpha(unlocked?1:.22);
-   if(this.found.has(a.data.id)&&a.data.id!=='condor'){a.sprite.anims.stop();a.sprite.setFrame(7);}
-   else if(this.found.has(a.data.id)){a.sprite.play('condor-moving',true);}
-   else if(a.state==='alert'){a.sprite.anims.stop();a.sprite.setFrame(6);}
+   if(a.state==='alert'){a.sprite.anims.stop();a.sprite.setFrame(6);}
    else a.sprite.play(`${a.data.texture}-${a.state}`,true);
   }
   const candidate=aim?this.animals.find(a=>this.clues.has(a.data.id)&&!this.found.has(a.data.id)&&Math.abs(a.sprite.x-px)<650&&Phaser.Math.Distance.Between(aim.x,aim.y,a.sprite.x,a.sprite.y)<78):undefined;
